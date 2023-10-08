@@ -106,3 +106,8 @@ RUN set -xe \
 WORKDIR /home/app
 
 USER app
+
+RUN set -xe \
+  && mix local.hex --force
+
+ENTRYPOINT ["mix", "run", "--no-halt"]

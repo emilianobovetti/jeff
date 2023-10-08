@@ -4,6 +4,8 @@ services:
   app:
     build: .
     container_name: app
+    working_dir: /home/app/src
     volumes:
       - .:/home/app/src
-    working_dir: /home/app/src
+    ports:
+      - 4000:4000

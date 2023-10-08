@@ -24,13 +24,16 @@ defmodule Jeff.MixProject do
 
   def application do
     [
+      mod: {Jeff.Application, []},
       extra_applications: [:logger]
     ]
   end
 
   defp deps do
     [
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:plug_cowboy, "~> 2.6"},
+      {:plug, "~> 1.15"}
     ]
   end
 end
