@@ -4,7 +4,7 @@ defmodule Jeff.Application do
   @impl Application
   def start(_type, _args) do
     children = [
-      {Plug.Cowboy, plug: JeffWeb.Endpoint, scheme: :http, options: [port: 4000]}
+      {Plug.Cowboy, plug: JeffWeb.Router, scheme: :http, options: [port: 4000]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
