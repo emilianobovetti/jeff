@@ -8,14 +8,17 @@ defmodule JeffWeb.Router do
 
   defp definitions do
     [
-      "creality_ender3.def.json",
-      "creality_base.def.json",
-      "fdmprinter.def.json"
+      "definitions/fdmprinter.def.json",
+      "definitions/creality_base.def.json",
+      "definitions/creality_ender3.def.json",
+      "definitions/fdmextruder.def.json",
+      "extruders/creality_base_extruder_0.def.json"
     ]
   end
 
   defp settings do
     %{
+      cool_min_temperature: "0",
       roofing_layer_count: "0",
       roofing_monotonic: "true"
     }
@@ -35,9 +38,10 @@ defmodule JeffWeb.Router do
       System.cmd(
         "CuraEngine",
         ["slice"] ++
-          Enum.flat_map(definitions(), &["-j", "/opt/cura/resources/definitions/#{&1}"]) ++
+          Enum.flat_map(definitions(), &["-j", Path.join("/opt/cura/resources", &1)]) ++
           Enum.flat_map(settings(), &["-s", "#{elem(&1, 0)}=#{elem(&1, 1)}"]) ++
-          ["-e0", "-l", tmp_stl, "-o", tmp_gcode],
+          ["-m5", "-e0", "-l", tmp_stl, "-o", tmp_gcode],
+        env: [{"CURA_ENGINE_SEARCH_PATH", "/opt/cura/resources/definitions:/opt/cura/resources/extruders"}],
         stderr_to_stdout: true
       )
 
