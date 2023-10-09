@@ -1,10 +1,7 @@
 defmodule JeffWeb.Router do
   use Plug.Router
 
-  plug JeffWeb.CodeReloader
-
   plug Plug.Parsers, parsers: [:urlencoded]
-
   plug Plug.Logger
   plug :match
   plug :dispatch

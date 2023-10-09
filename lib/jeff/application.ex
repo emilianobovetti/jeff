@@ -4,6 +4,7 @@ defmodule Jeff.Application do
   @impl Application
   def start(_type, _args) do
     children = [
+      Jeff.Watcher,
       {Plug.Cowboy, plug: JeffWeb.Router, scheme: :http, options: [port: 4000]}
     ]
 
