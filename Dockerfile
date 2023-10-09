@@ -18,26 +18,36 @@ RUN set -xe \
     gcc \
     g++ \
     libc6-dev \
-  && mkdir -p /opt/src \
+  && mkdir -p /opt/curaengine \
   && CURAENGINE_DOWNLOAD_URL="https://github.com/Ultimaker/CuraEngine/archive/$CURAENGINE_VERSION.tar.gz" \
   && CURAENGINE_DOWNLOAD_SHA256="202a2183355d96c28f45299688b78975c2bc8f7043e8885cf17c1eb3e5d09709" \
   && curl -fSL -o /tmp/curaengine.tar.gz "$CURAENGINE_DOWNLOAD_URL" \
   && echo "$CURAENGINE_DOWNLOAD_SHA256  /tmp/curaengine.tar.gz" | sha256sum -c - \
-  && tar -xf /tmp/curaengine.tar.gz --directory /opt/src --strip-components=1 \
+  && tar -xf /tmp/curaengine.tar.gz --directory /opt/curaengine --strip-components=1 \
   && rm /tmp/curaengine.tar.gz \
-  && cd /opt/src \
-  && python3 -m venv venv \
-  && . venv/bin/activate \
-  && pip install conan==1.60 \
-  && conan config install https://github.com/ultimaker/conan-config.git \
-  && conan install . --build=missing --update \
-  && cmake --preset release \
-  && cmake --build --preset release \
-  && mkdir -p /opt/out/bin \
-  && mkdir -p /opt/out/lib \
-  && cd /opt/src/build/Release \
-  && cp CuraEngine /opt/out/bin/ \
-  && cp $(ldd CuraEngine | awk 'NF == 4 && $3 ~ /^\/root\/.conan/ {print $3}') /opt/out/lib/
+  && ( cd /opt/curaengine \
+    && python3 -m venv venv \
+    && . venv/bin/activate \
+    && pip install conan==1.60 \
+    && conan config install https://github.com/ultimaker/conan-config.git \
+    && conan install . --build=missing --update \
+    && cmake --preset release \
+    && cmake --build --preset release \
+    && mkdir -p /opt/out/bin \
+    && mkdir -p /opt/out/lib \
+    && cd /opt/curaengine/build/Release \
+    && cp CuraEngine /opt/out/bin/ \
+    && cp $(ldd CuraEngine | awk 'NF == 4 && $3 ~ /^\/root\/.conan/ {print $3}') /opt/out/lib/ ) \
+  && CURA_DOWNLOAD_URL="https://github.com/Ultimaker/Cura/archive/$CURAENGINE_VERSION.tar.gz" \
+  && CURA_DOWNLOAD_SHA256="0be74be2c3e7b41974bec13a9e1cb596fa747e7925987d7670c9f4832cba6f49" \
+  && mkdir -p /opt/cura \
+  && curl -fSL -o /tmp/cura.tar.gz "$CURA_DOWNLOAD_URL" \
+  && echo "$CURA_DOWNLOAD_SHA256  /tmp/cura.tar.gz" | sha256sum -c - \
+  && tar -xf /tmp/cura.tar.gz --directory /opt/cura --strip-components=1 \
+  && rm /tmp/cura.tar.gz \
+  && mkdir -p /opt/out/resources \
+  && cp -r /opt/cura/resources/definitions /opt/cura/resources/extruders /opt/out/resources/ \
+  && rm -rf /opt/curaengine /opt/cura /var/lib/apt/lists/*
 
 FROM debian:stable-slim as dev
 
@@ -95,6 +105,10 @@ COPY --from=curaengine \
   /opt/out/lib/libpolyclipping.so.22 \
   /opt/out/lib/libprotobuf.so.32 \
   /lib/x86_64-linux-gnu/
+
+COPY --from=curaengine \
+  /opt/out/resources/ \
+  /opt/cura/resources/
 
 RUN set -xe \
   && for name in ct_run dialyzer epmd erl erlc escript run_erl to_erl typer; do \
