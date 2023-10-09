@@ -32,14 +32,13 @@ defmodule Jeff.MixProject do
 
   defp aliases do
     [
-      s: ["run --no-halt"]
+      start: ["deps.get", "run --no-halt"]
     ]
   end
 
   defp deps do
     [
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:jason, "~> 1.4"},
       {:plug_cowboy, "~> 2.6"},
       {:plug, "~> 1.15"}
     ]

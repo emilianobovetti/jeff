@@ -1,6 +1,7 @@
 FROM debian:stable-slim as curaengine
 
 ENV CURAENGINE_VERSION="5.4.0" \
+  CURA_VERSION="5.4.0" \
   DEBIAN_FRONTEND=noninteractive \
   LANG=C.UTF-8
 
@@ -38,7 +39,7 @@ RUN set -xe \
     && cd /opt/curaengine/build/Release \
     && cp CuraEngine /opt/out/bin/ \
     && cp $(ldd CuraEngine | awk 'NF == 4 && $3 ~ /^\/root\/.conan/ {print $3}') /opt/out/lib/ ) \
-  && CURA_DOWNLOAD_URL="https://github.com/Ultimaker/Cura/archive/$CURAENGINE_VERSION.tar.gz" \
+  && CURA_DOWNLOAD_URL="https://github.com/Ultimaker/Cura/archive/$CURA_VERSION.tar.gz" \
   && CURA_DOWNLOAD_SHA256="0be74be2c3e7b41974bec13a9e1cb596fa747e7925987d7670c9f4832cba6f49" \
   && mkdir -p /opt/cura \
   && curl -fSL -o /tmp/cura.tar.gz "$CURA_DOWNLOAD_URL" \
@@ -47,9 +48,9 @@ RUN set -xe \
   && rm /tmp/cura.tar.gz \
   && mkdir -p /opt/out/resources \
   && cp -r /opt/cura/resources/definitions /opt/cura/resources/extruders /opt/out/resources/ \
-  && rm -rf /opt/curaengine /opt/cura /var/lib/apt/lists/*
+  && rm -rf /opt/curaengine /opt/cura ~/.conan /var/lib/apt/lists/*
 
-FROM debian:stable-slim as dev
+FROM debian:stable-slim
 
 ENV DEBIAN_FRONTEND=noninteractive \
   LANG=C.UTF-8
@@ -125,4 +126,4 @@ USER app
 RUN set -xe \
   && mix local.hex --force
 
-ENTRYPOINT ["mix", "run", "--no-halt"]
+ENTRYPOINT ["mix", "start"]
