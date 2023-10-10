@@ -1,5 +1,7 @@
-defmodule Jeff.Watcher do
+defmodule Jeff.CodeWatcher do
   use GenServer
+
+  require Logger
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -38,8 +40,8 @@ defmodule Jeff.Watcher do
     {:noreply, port}
   end
 
-  def handle_info({port, {:data, path}}, port) do
-    IO.puts(path)
+  def handle_info({port, {:data, event}}, port) do
+    Logger.info(event)
 
     # Stolen from https://github.com/phoenixframework/phoenix/blob/7b5cd358aadb507cd90aa3a52e013f9e9e947ac4/lib/phoenix/code_reloader/server.ex#L73-L82
     {:module, Mix.Task} = Code.ensure_loaded(Mix.Task)
