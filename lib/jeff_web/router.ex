@@ -1,6 +1,7 @@
 defmodule JeffWeb.Router do
   use Plug.Router
 
+  plug JeffWeb.CORS, origins: ["*"]
   plug Plug.Parsers, parsers: [:urlencoded]
   plug Plug.Logger
   plug :match
