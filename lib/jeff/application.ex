@@ -5,7 +5,7 @@ defmodule Jeff.Application do
   def start(_type, _args) do
     children = [
       Jeff.CodeWatcher,
-      {Plug.Cowboy, plug: JeffWeb.Router, scheme: :http, options: [port: 4000]}
+      {Plug.Cowboy, plug: JeffWeb.Router, scheme: :http, options: [ip: {0, 0, 0, 0}, port: 8080]}
     ]
 
     opts = [strategy: :one_for_one, name: Jeff.Supervisor]

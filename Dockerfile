@@ -50,7 +50,7 @@ RUN set -xe \
   && cp -r /opt/cura/resources/definitions /opt/cura/resources/extruders /opt/out/resources/ \
   && rm -rf /opt/curaengine /opt/cura ~/.conan /var/lib/apt/lists/*
 
-FROM debian:stable-slim
+FROM debian:stable-slim as dev
 
 ENV DEBIAN_FRONTEND=noninteractive \
   LANG=C.UTF-8
@@ -127,3 +127,13 @@ RUN set -xe \
   && mix local.hex --force
 
 ENTRYPOINT ["mix", "start"]
+
+FROM dev AS prod
+
+ARG MIX_ENV=prod
+
+COPY --chown=app:app . /home/app/src
+
+WORKDIR /home/app/src
+
+EXPOSE 8080/tcp
