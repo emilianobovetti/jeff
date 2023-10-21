@@ -2,6 +2,7 @@ defmodule Jeff.Application do
   use Application
 
   @dialyzer {:no_underspecs, {:children, 1}}
+  @dialyzer {:no_match, {:children, 1}}
 
   @env Mix.env()
 
