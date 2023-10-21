@@ -184,4 +184,10 @@ COPY --from=build \
   /opt/app/_build/prod/rel/deploy \
   /usr/local/lib/jeff
 
-ENTRYPOINT ["/usr/local/lib/jeff/bin/deploy", "start"]
+RUN set -xe \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/* \
+  && ln -s /usr/local/lib/jeff/bin/deploy /usr/local/bin/jeff
+
+ENTRYPOINT ["jeff", "start"]
