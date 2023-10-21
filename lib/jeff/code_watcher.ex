@@ -9,8 +9,13 @@ defmodule Jeff.CodeWatcher do
 
   @impl GenServer
   def init(_opts) do
+    inotifywait =
+      with false <- :os.find_executable('inotifywait') do
+        raise "Could not find inotifywait executable"
+      end
+
     port =
-      Port.open({:spawn_executable, :os.find_executable('inotifywait')}, [
+      Port.open({:spawn_executable, inotifywait}, [
         :binary,
         :stderr_to_stdout,
         args: [
