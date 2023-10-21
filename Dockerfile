@@ -50,7 +50,7 @@ RUN set -xe \
   && cp -r /opt/cura/resources/definitions /opt/cura/resources/extruders /opt/out/resources/ \
   && rm -rf /opt/curaengine /opt/cura ~/.conan /var/lib/apt/lists/*
 
-FROM debian:stable-slim as erlang
+FROM debian:stable-slim as debian-erlang
 
 COPY --from=erlang:26-slim \
   /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 \
@@ -75,7 +75,7 @@ RUN set -xe \
       ln -s /usr/local/lib/erlang/bin/$name /usr/local/bin/$name; \
     done
 
-FROM erlang as elixir
+FROM debian-erlang as debian-elixir
 
 COPY --from=elixir:1.15-slim \
   /usr/local/lib/elixir/ \
@@ -93,7 +93,7 @@ RUN set -xe \
       ln -s /usr/local/lib/elixir/bin/$name /usr/local/bin/$name; \
     done
 
-FROM elixir as dev
+FROM debian-elixir as dev
 
 ENV DEBIAN_FRONTEND=noninteractive \
   LANG=C.UTF-8
@@ -131,7 +131,7 @@ RUN set -xe \
 
 ENTRYPOINT ["sh", "-c", "[ $# -eq 0 ] && exec mix start || exec $@", "$@"]
 
-FROM elixir AS build
+FROM debian-elixir AS build
 
 ENV DEBIAN_FRONTEND=noninteractive \
   LANG=C.UTF-8 \
@@ -156,12 +156,12 @@ FROM debian:stable-slim AS deploy
 
 ENV LANG=C.UTF-8
 
-COPY --from=erlang:26-slim \
+COPY --from=debian-erlang \
   /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 \
   /usr/lib/x86_64-linux-gnu/libssl.so.1.1 \
   /usr/lib/x86_64-linux-gnu/
 
-COPY --from=erlang:26-slim \
+COPY --from=debian-erlang \
   /usr/lib/x86_64-linux-gnu/engines-1.1/afalg.so \
   /usr/lib/x86_64-linux-gnu/engines-1.1/padlock.so \
   /usr/lib/x86_64-linux-gnu/engines-1.1/
