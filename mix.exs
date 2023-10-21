@@ -19,6 +19,12 @@ defmodule Jeff.MixProject do
           :unmatched_returns,
           :unknown
         ]
+      ],
+      releases: [
+        deploy: [
+          include_executables_for: [:unix],
+          applications: [jeff: :permanent]
+        ]
       ]
     ]
   end

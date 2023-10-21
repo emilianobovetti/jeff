@@ -50,41 +50,32 @@ RUN set -xe \
   && cp -r /opt/cura/resources/definitions /opt/cura/resources/extruders /opt/out/resources/ \
   && rm -rf /opt/curaengine /opt/cura ~/.conan /var/lib/apt/lists/*
 
-FROM debian:stable-slim as dev
+FROM debian:stable-slim as erlang
 
-ENV DEBIAN_FRONTEND=noninteractive \
-  LANG=C.UTF-8
-
-ARG UID=1000
-ARG GID=1000
-
-RUN set -xe \
-  && groupadd --gid "$GID" app \
-  && useradd --create-home --home-dir /home/app --uid "$UID" --gid "$GID" app \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    inotify-tools \
-    libodbc1 \
-    libsctp1
-
-COPY --from=elixir:1.15-slim \
+COPY --from=erlang:26-slim \
   /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 \
   /usr/lib/x86_64-linux-gnu/libssl.so.1.1 \
   /usr/lib/x86_64-linux-gnu/
 
-COPY --from=elixir:1.15-slim \
+COPY --from=erlang:26-slim \
   /usr/lib/x86_64-linux-gnu/engines-1.1/afalg.so \
   /usr/lib/x86_64-linux-gnu/engines-1.1/padlock.so \
   /usr/lib/x86_64-linux-gnu/engines-1.1/
 
-COPY --from=elixir:1.15-slim \
+COPY --from=erlang:26-slim \
   /usr/local/bin/rebar3 \
   /usr/local/bin/
 
-COPY --from=elixir:1.15-slim \
+COPY --from=erlang:26-slim \
   /usr/local/lib/erlang/ \
   /usr/local/lib/erlang/
+
+RUN set -xe \
+  && for name in ct_run dialyzer epmd erl erlc escript run_erl to_erl typer; do \
+      ln -s /usr/local/lib/erlang/bin/$name /usr/local/bin/$name; \
+    done
+
+FROM erlang as elixir
 
 COPY --from=elixir:1.15-slim \
   /usr/local/lib/elixir/ \
@@ -96,6 +87,25 @@ COPY --from=elixir:1.15-slim \
   /usr/local/share/man/man1/iex.1 \
   /usr/local/share/man/man1/mix.1 \
   /usr/local/share/man/man1/
+
+RUN set -xe \
+  && for name in elixir elixirc iex mix; do \
+      ln -s /usr/local/lib/elixir/bin/$name /usr/local/bin/$name; \
+    done
+
+FROM elixir as dev
+
+ENV DEBIAN_FRONTEND=noninteractive \
+  LANG=C.UTF-8
+
+ARG UID=1000
+ARG GID=1000
+
+RUN set -xe \
+  && groupadd --gid "$GID" app \
+  && useradd --create-home --home-dir /home/app --uid "$UID" --gid "$GID" app \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates inotify-tools
 
 COPY --from=curaengine \
   /opt/out/bin/CuraEngine \
@@ -111,29 +121,67 @@ COPY --from=curaengine \
   /opt/out/resources/ \
   /opt/cura/resources/
 
-RUN set -xe \
-  && for name in ct_run dialyzer epmd erl erlc escript run_erl to_erl typer; do \
-      ln -s /usr/local/lib/erlang/bin/$name /usr/local/bin/$name; \
-    done \
-  && for name in elixir elixirc iex mix; do \
-      ln -s /usr/local/lib/elixir/bin/$name /usr/local/bin/$name; \
-    done
-
 WORKDIR /home/app
 
 USER app
 
 RUN set -xe \
-  && mix local.hex --force
+  && mix local.hex --force \
+  && mix local.rebar --force
 
-ENTRYPOINT ["mix", "start"]
+ENTRYPOINT ["sh", "-c", "[ $# -eq 0 ] && exec mix start || exec $@", "$@"]
 
-FROM dev AS prod
+FROM elixir AS build
 
-ARG MIX_ENV=prod
+ENV DEBIAN_FRONTEND=noninteractive \
+  LANG=C.UTF-8 \
+  MIX_ENV=prod
 
-COPY --chown=app:app . /home/app/src
+RUN set -xe \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /home/app/src
+WORKDIR /opt/app
 
-EXPOSE 8080/tcp
+COPY mix.exs mix.lock ./
+
+RUN mix do deps.get, deps.compile
+
+COPY lib lib/
+
+RUN mix release
+
+FROM debian:stable-slim AS deploy
+
+ENV LANG=C.UTF-8
+
+COPY --from=erlang:26-slim \
+  /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 \
+  /usr/lib/x86_64-linux-gnu/libssl.so.1.1 \
+  /usr/lib/x86_64-linux-gnu/
+
+COPY --from=erlang:26-slim \
+  /usr/lib/x86_64-linux-gnu/engines-1.1/afalg.so \
+  /usr/lib/x86_64-linux-gnu/engines-1.1/padlock.so \
+  /usr/lib/x86_64-linux-gnu/engines-1.1/
+
+COPY --from=curaengine \
+  /opt/out/bin/CuraEngine \
+  /usr/local/bin/
+
+COPY --from=curaengine \
+  /opt/out/lib/libArcus.so \
+  /opt/out/lib/libpolyclipping.so.22 \
+  /opt/out/lib/libprotobuf.so.32 \
+  /lib/x86_64-linux-gnu/
+
+COPY --from=curaengine \
+  /opt/out/resources/ \
+  /opt/cura/resources/
+
+COPY --from=build \
+  /opt/app/_build/prod/rel/deploy \
+  /usr/local/lib/jeff
+
+ENTRYPOINT ["/usr/local/lib/jeff/bin/deploy", "start"]
